@@ -1,7 +1,7 @@
 import React from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface NavbarProps {
   isMenuOpen: boolean
@@ -44,36 +44,11 @@ const Navbar = ({ isMenuOpen, setIsMenuOpen }: NavbarProps) => {
     { name: 'Kontakt', href: '#contact' },
   ]
 
-  const navVariants = {
-    hidden: { y: -100, opacity: 0 },
-    visible: { 
-      y: 0, 
-      opacity: 1,
-      transition: {
-        duration: 0.5,
-        ease: 'easeOut'
-      }
-    }
-  }
-
-  const itemVariants = {
-    hidden: { y: -20, opacity: 0 },
-    visible: (i: number) => ({
-      y: 0,
-      opacity: 1,
-      transition: {
-        delay: i * 0.1,
-        duration: 0.3,
-        ease: 'easeOut'
-      }
-    })
-  }
-
   return (
     <motion.nav
-      initial="hidden"
-      animate="visible"
-      variants={navVariants}
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      transition={{ duration: 0.3 }}
       className={`fixed w-full z-50 transition-all duration-500 ${
         scrolled 
           ? 'bg-white/95 shadow-lg backdrop-blur-sm py-4' 
@@ -83,30 +58,27 @@ const Navbar = ({ isMenuOpen, setIsMenuOpen }: NavbarProps) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center">
           {/* Logo */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
+          <motion.div 
             className="flex-shrink-0"
+            whileHover={{ scale: 1.05 }}
+            transition={{ duration: 0.2 }}
           >
             <Link to="/" className="flex items-center space-x-2">
               <img 
                 src={scrolled ? '/logo.svg' : '/logo-light.svg'} 
                 alt="Höjdbolaget" 
-                className="h-10 w-auto transition-all duration-300 hover:scale-105"
+                className="h-10 w-auto transition-all duration-300"
               />
             </Link>
           </motion.div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex space-x-1">
-            {navItems.map((item, i) => (
-              <motion.div
+            {navItems.map((item) => (
+              <motion.div 
                 key={item.name}
-                custom={i}
-                variants={itemVariants}
                 whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                transition={{ duration: 0.2 }}
               >
                 <a
                   href={item.href}
@@ -128,6 +100,7 @@ const Navbar = ({ isMenuOpen, setIsMenuOpen }: NavbarProps) => {
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              transition={{ duration: 0.2 }}
             >
               <Link
                 to="/request-quote"
@@ -186,17 +159,16 @@ const Navbar = ({ isMenuOpen, setIsMenuOpen }: NavbarProps) => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            transition={{ duration: 0.2 }}
             className="md:hidden bg-white/95 backdrop-blur-sm border-t border-gray-100"
           >
             <div className="px-4 py-2 space-y-1">
-              {navItems.map((item, i) => (
+              {navItems.map((item) => (
                 <motion.a
                   key={item.name}
                   href={item.href}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.1 }}
+                  whileHover={{ x: 10 }}
+                  transition={{ duration: 0.2 }}
                   className={`block px-4 py-3 rounded-lg text-base font-medium transition-all duration-200
                     ${activeSection === item.href.slice(1)
                       ? 'text-primary bg-primary/5'
@@ -209,9 +181,9 @@ const Navbar = ({ isMenuOpen, setIsMenuOpen }: NavbarProps) => {
                 </motion.a>
               ))}
               <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: navItems.length * 0.1 }}
+                whileHover={{ x: 10 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ duration: 0.2 }}
               >
                 <Link
                   to="/request-quote"

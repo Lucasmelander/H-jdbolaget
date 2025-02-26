@@ -1,5 +1,4 @@
 import React from 'react'
-import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 
 const Footer = () => {
@@ -38,28 +37,6 @@ const Footer = () => {
     },
   ]
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.3,
-      },
-    },
-  }
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        duration: 0.5,
-      },
-    },
-  }
-
   return (
     <footer className="bg-gradient-to-br from-secondary to-secondary-dark relative overflow-hidden">
       {/* Decorative Elements */}
@@ -69,23 +46,10 @@ const Footer = () => {
       </div>
 
       <div className="relative max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:py-24 lg:px-8">
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-12 md:gap-8"
-        >
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-12 md:gap-8">
           {/* Company Info */}
-          <motion.div
-            variants={itemVariants}
-            className="col-span-2 md:col-span-1"
-          >
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              transition={{ duration: 0.2 }}
-              className="space-y-6"
-            >
+          <div className="col-span-2 md:col-span-1">
+            <div className="space-y-6">
               <Link to="/" className="block">
                 <img
                   src="/logo-light.svg"
@@ -96,7 +60,7 @@ const Footer = () => {
               <p className="text-base text-gray-300">
                 Professionella ställningslösningar med fokus på säkerhet och kvalitet sedan 2003.
               </p>
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <div>
                 <Link
                   to="/request-quote"
                   className="inline-flex items-center px-4 py-2 bg-primary hover:bg-primary-dark text-white text-sm font-medium rounded-lg transition-colors duration-200"
@@ -106,29 +70,23 @@ const Footer = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                   </svg>
                 </Link>
-              </motion.div>
-            </motion.div>
-          </motion.div>
+              </div>
+            </div>
+          </div>
 
           {/* Navigation Sections */}
           {footerSections.map((section) => (
-            <motion.div
+            <div
               key={section.title}
-              variants={itemVariants}
               className="col-span-1"
             >
-              <motion.h3
-                whileHover={{ x: 5 }}
-                className="text-sm font-semibold text-white tracking-wider uppercase mb-4"
-              >
+              <h3 className="text-sm font-semibold text-white tracking-wider uppercase mb-4">
                 {section.title}
-              </motion.h3>
+              </h3>
               <ul className="space-y-3">
                 {section.links.map((link) => (
-                  <motion.li
+                  <li
                     key={link.name}
-                    whileHover={{ x: 5 }}
-                    transition={{ duration: 0.2 }}
                   >
                     {link.href.startsWith('/') ? (
                       <Link
@@ -145,36 +103,23 @@ const Footer = () => {
                         {link.name}
                       </a>
                     )}
-                  </motion.li>
+                  </li>
                 ))}
               </ul>
-            </motion.div>
+            </div>
           ))}
-        </motion.div>
+        </div>
 
         {/* Bottom Section */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          className="mt-16 pt-8 border-t border-gray-700"
-        >
+        <div className="mt-16 pt-8 border-t border-gray-700">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <motion.p
-              variants={itemVariants}
-              className="text-base text-gray-400"
-            >
+            <p className="text-base text-gray-400">
               &copy; {currentYear} Höjdbolaget AB. Alla rättigheter förbehållna.
-            </motion.p>
-            <motion.div
-              variants={itemVariants}
-              className="flex space-x-6"
-            >
-              <motion.a
+            </p>
+            <div className="flex space-x-6">
+              <a
                 href="#"
-                whileHover={{ scale: 1.1, y: -2 }}
-                className="text-gray-400 hover:text-primary transition-colors duration-200"
+                className="text-gray-400 hover:text-white transition-colors duration-200"
               >
                 <span className="sr-only">Facebook</span>
                 <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
@@ -184,11 +129,10 @@ const Footer = () => {
                     clipRule="evenodd"
                   />
                 </svg>
-              </motion.a>
-              <motion.a
+              </a>
+              <a
                 href="#"
-                whileHover={{ scale: 1.1, y: -2 }}
-                className="text-gray-400 hover:text-primary transition-colors duration-200"
+                className="text-gray-400 hover:text-white transition-colors duration-200"
               >
                 <span className="sr-only">LinkedIn</span>
                 <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
@@ -198,10 +142,10 @@ const Footer = () => {
                     clipRule="evenodd"
                   />
                 </svg>
-              </motion.a>
-            </motion.div>
+              </a>
+            </div>
           </div>
-        </motion.div>
+        </div>
       </div>
     </footer>
   )
