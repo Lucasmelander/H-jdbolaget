@@ -1,6 +1,8 @@
 import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import React, { useState } from 'react'
+import { supabase } from '../lib/supabase'
+import type { Enquiry } from '../lib/supabase'
 
 const RequestQuote = () => {
   const { ref, inView } = useInView({
@@ -8,16 +10,21 @@ const RequestQuote = () => {
     triggerOnce: true,
   })
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Omit<Enquiry, 'id' | 'created_at' | 'status'>>({
     name: '',
     company: '',
     email: '',
     phone: '',
-    serviceType: '',
-    projectLocation: '',
-    startDate: '',
-    description: '',
+    service_type: '',
+    project_start: '',
+    message: '',
   })
+
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitStatus, setSubmitStatus] = useState<{
+    type: 'success' | 'error' | null;
+    message: string;
+  }>({ type: null, message: '' })
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -31,9 +38,54 @@ const RequestQuote = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Here you would typically send the form data to your backend
-    console.log('Form submitted:', formData)
-    // Add your form submission logic here
+    setIsSubmitting(true)
+    setSubmitStatus({ type: null, message: '' })
+
+    try {
+      console.log('Submitting form data:', formData)
+      
+      // Insert the enquiry into Supabase
+      const { data, error } = await supabase
+        .from('enquiries')
+        .insert([
+          {
+            ...formData,
+            status: 'new',
+          },
+        ])
+        .select()
+
+      console.log('Supabase response:', { data, error })
+
+      if (error) {
+        console.error('Supabase error details:', error)
+        throw error
+      }
+
+      // Clear form and show success message
+      setFormData({
+        name: '',
+        company: '',
+        email: '',
+        phone: '',
+        service_type: '',
+        project_start: '',
+        message: '',
+      })
+
+      setSubmitStatus({
+        type: 'success',
+        message: 'Tack för din förfrågan! Vi återkommer inom kort.',
+      })
+    } catch (error) {
+      console.error('Error submitting form:', error)
+      setSubmitStatus({
+        type: 'error',
+        message: 'Ett fel uppstod. Vänligen försök igen eller kontakta oss direkt.',
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const serviceTypes = [
@@ -64,6 +116,18 @@ const RequestQuote = () => {
           </p>
         </motion.div>
 
+        {submitStatus.type && (
+          <div
+            className={`mb-6 p-4 rounded-md ${
+              submitStatus.type === 'success'
+                ? 'bg-green-50 text-green-800'
+                : 'bg-red-50 text-red-800'
+            }`}
+          >
+            {submitStatus.message}
+          </div>
+        )}
+
         <motion.div
           initial={{ opacity: 0 }}
           animate={inView ? { opacity: 1 } : {}}
@@ -83,7 +147,8 @@ const RequestQuote = () => {
                   required
                   value={formData.name}
                   onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                  disabled={isSubmitting}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary disabled:opacity-50"
                 />
               </div>
 
@@ -97,7 +162,8 @@ const RequestQuote = () => {
                   id="company"
                   value={formData.company}
                   onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                  disabled={isSubmitting}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary disabled:opacity-50"
                 />
               </div>
             </div>
@@ -114,7 +180,8 @@ const RequestQuote = () => {
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                  disabled={isSubmitting}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary disabled:opacity-50"
                 />
               </div>
 
@@ -129,23 +196,25 @@ const RequestQuote = () => {
                   required
                   value={formData.phone}
                   onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                  disabled={isSubmitting}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary disabled:opacity-50"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="serviceType" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="service_type" className="block text-sm font-medium text-gray-700">
                   Typ av tjänst *
                 </label>
                 <select
-                  name="serviceType"
-                  id="serviceType"
+                  name="service_type"
+                  id="service_type"
                   required
-                  value={formData.serviceType}
+                  value={formData.service_type}
                   onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                  disabled={isSubmitting}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary disabled:opacity-50"
                 >
                   <option value="">Välj tjänst</option>
                   {serviceTypes.map((service) => (
@@ -157,72 +226,62 @@ const RequestQuote = () => {
               </div>
 
               <div>
-                <label htmlFor="projectLocation" className="block text-sm font-medium text-gray-700">
-                  Projektplats *
+                <label htmlFor="project_start" className="block text-sm font-medium text-gray-700">
+                  Önskat startdatum
                 </label>
                 <input
-                  type="text"
-                  name="projectLocation"
-                  id="projectLocation"
-                  required
-                  value={formData.projectLocation}
+                  type="date"
+                  name="project_start"
+                  id="project_start"
+                  value={formData.project_start}
                   onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                  disabled={isSubmitting}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary disabled:opacity-50"
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="startDate" className="block text-sm font-medium text-gray-700">
-                Önskat startdatum
-              </label>
-              <input
-                type="date"
-                name="startDate"
-                id="startDate"
-                value={formData.startDate}
-                onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="message" className="block text-sm font-medium text-gray-700">
                 Projektbeskrivning *
               </label>
               <textarea
-                name="description"
-                id="description"
+                name="message"
+                id="message"
                 rows={4}
                 required
-                value={formData.description}
+                value={formData.message}
                 onChange={handleChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                disabled={isSubmitting}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary disabled:opacity-50"
                 placeholder="Beskriv ditt projekt och eventuella specifika krav..."
               />
             </div>
 
             <div className="text-center">
               <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: isSubmitting ? 1 : 1.05 }}
+                whileTap={{ scale: isSubmitting ? 1 : 0.95 }}
                 type="submit"
-                className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                disabled={isSubmitting}
+                className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Skicka förfrågan
-                <svg
-                  className="ml-2 h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M14 5l7 7m0 0l-7 7m7-7H3"
-                  />
-                </svg>
+                {isSubmitting ? 'Skickar...' : 'Skicka förfrågan'}
+                {!isSubmitting && (
+                  <svg
+                    className="ml-2 h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M14 5l7 7m0 0l-7 7m7-7H3"
+                    />
+                  </svg>
+                )}
               </motion.button>
             </div>
           </form>
