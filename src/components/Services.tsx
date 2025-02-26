@@ -105,12 +105,12 @@ const Services = () => {
           animate={inView ? "visible" : "hidden"}
           className="mt-20 grid grid-cols-1 gap-12 lg:grid-cols-3 lg:gap-8"
         >
-          {services.map((service, index) => (
+          {services.map((service) => (
             <motion.div
               key={service.title}
               variants={itemVariants}
               whileHover={{ y: -8, transition: { duration: 0.3 } }}
-              className="relative bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group"
+              className="group relative bg-white rounded-xl p-8 shadow-lg hover:shadow-xl transition-all duration-300"
             >
               {/* Decorative gradient overlay */}
               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

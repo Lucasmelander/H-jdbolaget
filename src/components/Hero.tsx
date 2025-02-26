@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import React from 'react'
 
 const Hero = () => {
   return (
