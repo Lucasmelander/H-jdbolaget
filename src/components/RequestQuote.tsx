@@ -42,7 +42,9 @@ const RequestQuote = () => {
     setSubmitStatus({ type: null, message: '' })
 
     try {
-      console.log('Submitting form data:', formData)
+      // Log the Supabase URL to verify environment variables are loaded
+      console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL)
+      console.log('Form Data being submitted:', formData)
       
       // Insert the enquiry into Supabase
       const { data, error } = await supabase
@@ -55,10 +57,15 @@ const RequestQuote = () => {
         ])
         .select()
 
-      console.log('Supabase response:', { data, error })
+      console.log('Supabase Response:', { data, error })
 
       if (error) {
-        console.error('Supabase error details:', error)
+        console.error('Supabase Error Details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        })
         throw error
       }
 
@@ -77,11 +84,11 @@ const RequestQuote = () => {
         type: 'success',
         message: 'Tack för din förfrågan! Vi återkommer inom kort.',
       })
-    } catch (error) {
-      console.error('Error submitting form:', error)
+    } catch (error: any) {
+      console.error('Full error object:', error)
       setSubmitStatus({
         type: 'error',
-        message: 'Ett fel uppstod. Vänligen försök igen eller kontakta oss direkt.',
+        message: `Ett fel uppstod: ${error.message || 'Okänt fel'}. Vänligen försök igen eller kontakta oss direkt.`,
       })
     } finally {
       setIsSubmitting(false)
