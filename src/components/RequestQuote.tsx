@@ -47,7 +47,7 @@ const RequestQuote = () => {
       case 2:
         return Boolean(formData.service_type?.trim())
       case 3:
-        return Boolean(formData.message?.trim())
+        return Boolean(formData.message) && formData.message.trim().length > 0
       default:
         return false
     }
@@ -55,10 +55,17 @@ const RequestQuote = () => {
 
   const validateAllFields = () => {
     const requiredFields = ['name', 'email', 'phone', 'service_type', 'message'] as const
-    const missingFields = requiredFields.filter(field => !formData[field]?.trim())
+    const missingFields = requiredFields.filter(field => {
+      const value = formData[field]
+      return !value || value.trim().length === 0
+    })
     
     if (missingFields.length > 0) {
       console.error('Missing required fields:', missingFields)
+      setSubmitStatus({
+        success: false,
+        message: `Vänligen fyll i följande obligatoriska fält: ${missingFields.join(', ')}`
+      })
       return false
     }
 
@@ -94,14 +101,11 @@ const RequestQuote = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Starting form submission...')
+    console.log('Form submission initiated')
     console.log('Current form data:', formData)
 
     if (!validateAllFields()) {
-      setSubmitStatus({
-        success: false,
-        message: 'Vänligen fyll i alla obligatoriska fält korrekt.'
-      })
+      console.log('Form validation failed')
       return
     }
 
@@ -109,15 +113,31 @@ const RequestQuote = () => {
     setSubmitStatus({})
 
     try {
-      console.log('Submitting to Supabase...')
-      const { error } = await submitFormData(formData)
+      const submissionData = {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        company: formData.company?.trim() || '',
+        message: formData.message.trim(),
+        service_type: formData.service_type.trim(),
+        project_start: formData.project_start || new Date().toISOString().split('T')[0],
+      }
+
+      console.log('Prepared submission data:', submissionData)
+      console.log('Calling submitFormData...')
+      
+      const { data, error } = await submitFormData(submissionData)
       
       if (error) {
-        console.error('Supabase error:', error)
+        console.error('Supabase error:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        })
         throw error
       }
 
-      console.log('Form submitted successfully')
+      console.log('Form submission successful:', data)
       setSubmitStatus({
         success: true,
         message: 'Tack för din förfrågan! Vi återkommer så snart som möjligt.'
@@ -134,11 +154,15 @@ const RequestQuote = () => {
         message: '',
       })
       setCurrentStep(1)
-    } catch (error) {
-      console.error('Submission error:', error)
+    } catch (error: any) {
+      console.error('Form submission error:', {
+        error: error?.message,
+        details: error?.details,
+        hint: error?.hint
+      })
       setSubmitStatus({
         success: false,
-        message: 'Ett fel uppstod. Vänligen försök igen eller kontakta oss direkt.'
+        message: error?.message || 'Ett fel uppstod. Vänligen försök igen eller kontakta oss direkt.'
       })
     } finally {
       setIsSubmitting(false)
@@ -259,13 +283,22 @@ const RequestQuote = () => {
           <div className="space-y-6">
             <div>
               <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">
-                Meddelande *
+                Projektbeskrivning *
               </label>
+              <p className="text-sm text-gray-500 mb-2">
+                Beskriv ditt projekt i detalj. Till exempel:
+                • Projektets omfattning och mått
+                • Specifika krav eller utmaningar
+                • Önskad tidsram
+                • Platsens förutsättningar
+                • Eventuella säkerhetskrav
+              </p>
               <textarea
                 id="message"
                 name="message"
                 required
-                rows={4}
+                rows={6}
+                placeholder="Beskriv ditt projekt här..."
                 value={formData.message}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
