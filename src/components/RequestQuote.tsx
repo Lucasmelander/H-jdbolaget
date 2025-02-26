@@ -1,8 +1,8 @@
 import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import React, { useState } from 'react'
-import { supabase } from '../lib/supabase'
-import type { Enquiry } from '../lib/supabase'
+import { submitFormData } from '../lib/supabase'
+import type { FormSubmission } from '../lib/supabase'
 
 const RequestQuote = () => {
   const { ref, inView } = useInView({
@@ -10,7 +10,7 @@ const RequestQuote = () => {
     triggerOnce: true,
   })
 
-  const [formData, setFormData] = useState<Omit<Enquiry, 'id' | 'created_at' | 'status'>>({
+  const [formData, setFormData] = useState<Omit<FormSubmission, 'id' | 'created_at' | 'updated_at' | 'status'>>({
     name: '',
     company: '',
     email: '',
@@ -42,32 +42,16 @@ const RequestQuote = () => {
     setSubmitStatus({ type: null, message: '' })
 
     try {
-      // Log the Supabase URL to verify environment variables are loaded
-      console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL)
-      console.log('Form Data being submitted:', formData)
+      console.log('Submitting form data:', formData)
       
-      // Insert the enquiry into Supabase
-      const { data, error } = await supabase
-        .from('enquiries')
-        .insert([
-          {
-            ...formData,
-            status: 'new',
-          },
-        ])
-        .select()
-
-      console.log('Supabase Response:', { data, error })
+      const { data, error } = await submitFormData(formData)
 
       if (error) {
-        console.error('Supabase Error Details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        })
+        console.error('Submission error:', error)
         throw error
       }
+
+      console.log('Submission successful:', data)
 
       // Clear form and show success message
       setFormData({
@@ -250,7 +234,7 @@ const RequestQuote = () => {
 
             <div>
               <label htmlFor="message" className="block text-sm font-medium text-gray-700">
-                Projektbeskrivning *
+                Meddelande *
               </label>
               <textarea
                 name="message"
@@ -261,34 +245,21 @@ const RequestQuote = () => {
                 onChange={handleChange}
                 disabled={isSubmitting}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary disabled:opacity-50"
-                placeholder="Beskriv ditt projekt och eventuella specifika krav..."
+                placeholder="Beskriv ditt projekt..."
               />
             </div>
 
-            <div className="text-center">
+            <div className="flex justify-end">
               <motion.button
-                whileHover={{ scale: isSubmitting ? 1 : 1.05 }}
-                whileTap={{ scale: isSubmitting ? 1 : 0.95 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 type="submit"
                 disabled={isSubmitting}
-                className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors duration-200 ${
+                  isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
                 {isSubmitting ? 'Skickar...' : 'Skicka förfrågan'}
-                {!isSubmitting && (
-                  <svg
-                    className="ml-2 h-5 w-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M14 5l7 7m0 0l-7 7m7-7H3"
-                    />
-                  </svg>
-                )}
               </motion.button>
             </div>
           </form>
