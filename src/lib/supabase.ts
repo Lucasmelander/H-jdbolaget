@@ -4,22 +4,52 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = 'https://reluxcsbuhaaedjwgmvc.supabase.co'
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlbHV4Y3NidWhhYWVkandnbXZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA1ODcwMDIsImV4cCI6MjA1NjE2MzAwMn0.LMF2MWGnQomhgcWJUbeneXotmH8saaeG_wS3YHEujEE'
 
-console.log('Initializing Supabase with:', { supabaseUrl })
+console.log('Supabase Configuration:', {
+  url: supabaseUrl,
+  hasKey: !!supabaseAnonKey
+})
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Create Supabase client with additional options
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: false
+  },
+  global: {
+    headers: {
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal'
+    }
+  }
+})
 
-// Test connection immediately
-console.log('Testing connection...')
-supabase.from('form_submissions')
-  .select('id')
-  .limit(1)
-  .then(({ data, error }) => {
-    if (error) {
-      console.error('Connection failed:', error)
-    } else {
-      console.log('Connection successful:', data)
+// Test connection and table access
+console.log('Testing Supabase connection and table access...')
+Promise.all([
+  // Test basic connection
+  supabase.from('form_submissions').select('count').limit(1),
+  // Test insert permission
+  supabase.from('form_submissions').insert([{ 
+    name: 'test',
+    email: 'test@test.com',
+    phone: '123456',
+    message: 'test',
+    service_type: 'test',
+    status: 'new'
+  }]).select()
+]).then(([selectResult, insertResult]) => {
+  console.log('Connection test results:', {
+    select: {
+      success: !selectResult.error,
+      error: selectResult.error
+    },
+    insert: {
+      success: !insertResult.error,
+      error: insertResult.error
     }
   })
+}).catch(error => {
+  console.error('Connection test failed:', error)
+})
 
 // Type for the form submission data
 export interface FormSubmission {
@@ -37,25 +67,48 @@ export interface FormSubmission {
 
 // Helper function to submit form data
 export const submitFormData = async (formData: Omit<FormSubmission, 'id' | 'created_at' | 'status'>) => {
-  console.log('Submitting form:', formData)
+  console.log('Submitting form data:', formData)
   
   try {
+    // First, verify connection
+    const { error: testError } = await supabase
+      .from('form_submissions')
+      .select('count')
+      .limit(1)
+    
+    if (testError) {
+      console.error('Connection test failed before submission:', testError)
+      throw new Error('Database connection failed')
+    }
+
+    // Attempt to insert data
     const { data, error } = await supabase
       .from('form_submissions')
       .insert([{
         ...formData,
         status: 'new'
       }])
+      .select()
 
     if (error) {
-      console.error('Submission failed:', error)
+      console.error('Form submission failed:', {
+        error: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      })
       throw error
     }
 
-    console.log('Submission successful:', data)
+    console.log('Form submission successful:', data)
     return { data, error: null }
-  } catch (error) {
-    console.error('Error:', error)
+  } catch (error: any) {
+    console.error('Form submission error:', {
+      message: error?.message,
+      details: error?.details,
+      hint: error?.hint,
+      code: error?.code
+    })
     return { data: null, error }
   }
 }
@@ -63,21 +116,30 @@ export const submitFormData = async (formData: Omit<FormSubmission, 'id' | 'crea
 // Helper function to check connection
 export const checkConnection = async () => {
   try {
-    console.log('Testing Supabase connection...')
     const { data, error } = await supabase
       .from('form_submissions')
       .select('count')
       .limit(1)
     
     if (error) {
-      console.error('Connection test failed:', error)
+      console.error('Connection check failed:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      })
       throw error
     }
 
-    console.log('Connection test successful:', data)
+    console.log('Connection check successful:', data)
     return { success: true, error: null }
-  } catch (error) {
-    console.error('Connection test error:', error)
+  } catch (error: any) {
+    console.error('Connection check error:', {
+      message: error?.message,
+      details: error?.details,
+      hint: error?.hint,
+      code: error?.code
+    })
     return { success: false, error }
   }
 }

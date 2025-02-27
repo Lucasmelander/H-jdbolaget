@@ -101,8 +101,7 @@ const RequestQuote = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Form submission initiated')
-    console.log('Current form data:', formData)
+    console.log('Form submission started')
 
     if (!validateAllFields()) {
       console.log('Form validation failed')
@@ -123,21 +122,30 @@ const RequestQuote = () => {
         project_start: formData.project_start || new Date().toISOString().split('T')[0],
       }
 
-      console.log('Prepared submission data:', submissionData)
-      console.log('Calling submitFormData...')
-      
+      console.log('Attempting to submit data:', submissionData)
+
       const { data, error } = await submitFormData(submissionData)
-      
+
       if (error) {
-        console.error('Supabase error:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint
+        console.error('Submission error:', error)
+        let errorMessage = 'Ett fel uppstod vid skickandet av formuläret.'
+        
+        if (error.message?.includes('duplicate')) {
+          errorMessage = 'En förfrågan med denna e-postadress finns redan.'
+        } else if (error.message?.includes('permission')) {
+          errorMessage = 'Behörighetsproblem. Vänligen försök igen.'
+        } else if (error.message?.includes('network')) {
+          errorMessage = 'Nätverksfel. Kontrollera din internetanslutning.'
+        }
+
+        setSubmitStatus({
+          success: false,
+          message: errorMessage
         })
-        throw error
+        return
       }
 
-      console.log('Form submission successful:', data)
+      console.log('Submission successful:', data)
       setSubmitStatus({
         success: true,
         message: 'Tack för din förfrågan! Vi återkommer så snart som möjligt.'
@@ -155,14 +163,10 @@ const RequestQuote = () => {
       })
       setCurrentStep(1)
     } catch (error: any) {
-      console.error('Form submission error:', {
-        error: error?.message,
-        details: error?.details,
-        hint: error?.hint
-      })
+      console.error('Unexpected error:', error)
       setSubmitStatus({
         success: false,
-        message: error?.message || 'Ett fel uppstod. Vänligen försök igen eller kontakta oss direkt.'
+        message: 'Ett oväntat fel uppstod. Vänligen försök igen senare.'
       })
     } finally {
       setIsSubmitting(false)
