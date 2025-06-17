@@ -28,83 +28,163 @@ const RequestQuote = () => {
     message?: string
   }>({})
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
+  // Add field-specific validation functions
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+    return emailRegex.test(email)
+  }
+
+  const validatePhone = (phone: string) => {
+    // Allow numbers, spaces, hyphens, plus sign, and parentheses
+    // Must have at least 8 digits (including country code)
+    const phoneRegex = /^[+]?[(]?[0-9]{1,4}[)]?[-\s.]?[0-9]{1,3}[-\s.]?[0-9]{4,6}$/
+    return phoneRegex.test(phone.replace(/\s+/g, ''))
+  }
+
+  const validateName = (name: string) => {
+    // Allow letters, spaces, hyphens, and common special characters for names
+    const nameRegex = /^[a-zA-ZåäöÅÄÖ\s-]{2,50}$/
+    return nameRegex.test(name)
+  }
+
+  const validateMessage = (message: string) => {
+    // Message should be at least 20 characters
+    return message.trim().length >= 20
+  }
+
+  const getFieldError = (field: string, value: string): string | null => {
+    switch (field) {
+      case 'email':
+        return !validateEmail(value) ? 'Vänligen ange en giltig e-postadress (exempel@domain.com)' : null
+      case 'phone':
+        return !validatePhone(value) ? 'Vänligen ange ett giltigt telefonnummer (minst 8 siffror)' : null
+      case 'name':
+        return !validateName(value) ? 'Vänligen ange ett giltigt namn (2-50 bokstäver)' : null
+      case 'message':
+        return !validateMessage(value) ? 'Meddelandet måste vara minst 20 tecken långt' : null
+      default:
+        return null
+    }
   }
 
   const validateStep = (step: number) => {
+    console.log(`🔍 Validating step ${step}...`)
+    
     switch (step) {
-      case 1:
-        return Boolean(formData.name?.trim()) && 
-               Boolean(formData.email?.trim()) && 
-               Boolean(formData.phone?.trim())
+      case 1: {
+        const nameError = getFieldError('name', formData.name)
+        const emailError = getFieldError('email', formData.email)
+        const phoneError = getFieldError('phone', formData.phone)
+
+        if (nameError || emailError || phoneError) {
+          setSubmitStatus({
+            success: false,
+            message: [nameError, emailError, phoneError].filter(Boolean).join('. ')
+          })
+          return false
+        }
+        return true
+      }
       case 2:
-        return Boolean(formData.service_type?.trim())
-      case 3:
-        return Boolean(formData.message) && formData.message.trim().length > 0
+        if (!formData.service_type?.trim()) {
+          setSubmitStatus({
+            success: false,
+            message: 'Vänligen välj en tjänst'
+          })
+          return false
+        }
+        return true
+      case 3: {
+        const messageError = getFieldError('message', formData.message)
+        if (messageError) {
+          setSubmitStatus({
+            success: false,
+            message: messageError
+          })
+          return false
+        }
+        return true
+      }
       default:
         return false
     }
   }
 
   const validateAllFields = () => {
-    const requiredFields = ['name', 'email', 'phone', 'service_type', 'message'] as const
-    const missingFields = requiredFields.filter(field => {
-      const value = formData[field]
-      return !value || value.trim().length === 0
-    })
+    console.log('🔍 Validating all fields...')
     
-    if (missingFields.length > 0) {
-      console.error('Missing required fields:', missingFields)
+    const errors: string[] = []
+    
+    // Check all required fields
+    const nameError = getFieldError('name', formData.name)
+    const emailError = getFieldError('email', formData.email)
+    const phoneError = getFieldError('phone', formData.phone)
+    const messageError = getFieldError('message', formData.message)
+
+    if (nameError) errors.push(nameError)
+    if (emailError) errors.push(emailError)
+    if (phoneError) errors.push(phoneError)
+    if (!formData.service_type) errors.push('Vänligen välj en tjänst')
+    if (messageError) errors.push(messageError)
+
+    if (errors.length > 0) {
       setSubmitStatus({
         success: false,
-        message: `Vänligen fyll i följande obligatoriska fält: ${missingFields.join(', ')}`
+        message: errors.join('. ')
       })
-      return false
-    }
-
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(formData.email)) {
-      console.error('Invalid email format')
-      return false
-    }
-
-    // Basic phone validation (at least 6 digits)
-    const phoneRegex = /^[0-9\s\-+()]{6,}$/
-    if (!phoneRegex.test(formData.phone)) {
-      console.error('Invalid phone format')
       return false
     }
 
     return true
   }
 
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target
+    console.log(`📝 Field "${name}" changed to:`, value)
+    
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
+
+    // Clear error message when user starts typing
+    setSubmitStatus({})
+
+    // Show real-time validation feedback
+    const error = getFieldError(name, value)
+    if (error) {
+      setSubmitStatus({
+        success: false,
+        message: error
+      })
+    }
+  }
+
   const handleNext = () => {
+    console.log(`🔄 Attempting to move to next step from step ${currentStep}`)
     if (validateStep(currentStep)) {
-      console.log(`Step ${currentStep} validated successfully`)
+      console.log(`✅ Step ${currentStep} validated successfully`)
       setCurrentStep(prev => prev + 1)
     } else {
-      console.error(`Step ${currentStep} validation failed`)
+      console.error(`❌ Step ${currentStep} validation failed`)
     }
   }
 
   const handlePrevious = () => {
+    console.log(`⬅️ Moving back from step ${currentStep} to ${currentStep - 1}`)
     setCurrentStep(prev => prev - 1)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Form submission started')
+    console.log('📤 Form submission started')
+    console.log('Current step:', currentStep)
+    console.log('Form data:', formData)
 
     if (!validateAllFields()) {
-      console.log('Form validation failed')
+      console.log('❌ Form validation failed')
       return
     }
 
@@ -122,12 +202,12 @@ const RequestQuote = () => {
         project_start: formData.project_start || new Date().toISOString().split('T')[0],
       }
 
-      console.log('Attempting to submit data:', submissionData)
+      console.log('📝 Attempting to submit data:', submissionData)
 
       const { data, error } = await submitFormData(submissionData)
 
       if (error) {
-        console.error('Submission error:', error)
+        console.error('❌ Submission error:', error)
         let errorMessage = 'Ett fel uppstod vid skickandet av formuläret.'
         
         if (error.message?.includes('duplicate')) {
@@ -145,7 +225,7 @@ const RequestQuote = () => {
         return
       }
 
-      console.log('Submission successful:', data)
+      console.log('✅ Submission successful:', data)
       setSubmitStatus({
         success: true,
         message: 'Tack för din förfrågan! Vi återkommer så snart som möjligt.'
@@ -163,7 +243,7 @@ const RequestQuote = () => {
       })
       setCurrentStep(1)
     } catch (error: any) {
-      console.error('Unexpected error:', error)
+      console.error('❌ Unexpected error:', error)
       setSubmitStatus({
         success: false,
         message: 'Ett oväntat fel uppstod. Vänligen försök igen senare.'

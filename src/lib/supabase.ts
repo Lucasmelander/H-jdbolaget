@@ -1,16 +1,16 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Hardcoded values for testing
-const supabaseUrl = 'https://reluxcsbuhaaedjwgmvc.supabase.co'
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlbHV4Y3NidWhhYWVkandnbXZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA1ODcwMDIsImV4cCI6MjA1NjE2MzAwMn0.LMF2MWGnQomhgcWJUbeneXotmH8saaeG_wS3YHEujEE'
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://stcmpqlvvkcqjjyclnsg.supabase.co'
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0Y21wcWx2dmtjcWpqeWNsbnNnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY4MTQ0MjAsImV4cCI6MjA2MjM5MDQyMH0._9AAQbcuX3zMi7NUjyQRO138LokX5h08FK4szeMFegY'
 
-console.log('Supabase Configuration:', {
+console.log('🔄 Initializing Supabase connection...', {
   url: supabaseUrl,
-  hasKey: !!supabaseAnonKey
+  hasKey: !!supabaseAnonKey,
+  isUsingEnvVars: !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY)
 })
 
 // Create Supabase client with additional options
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: false
   },
@@ -22,34 +22,27 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 })
 
-// Test connection and table access
-console.log('Testing Supabase connection and table access...')
-Promise.all([
-  // Test basic connection
-  supabase.from('form_submissions').select('count').limit(1),
-  // Test insert permission
-  supabase.from('form_submissions').insert([{ 
-    name: 'test',
-    email: 'test@test.com',
-    phone: '123456',
-    message: 'test',
-    service_type: 'test',
-    status: 'new'
-  }]).select()
-]).then(([selectResult, insertResult]) => {
-  console.log('Connection test results:', {
-    select: {
-      success: !selectResult.error,
-      error: selectResult.error
-    },
-    insert: {
-      success: !insertResult.error,
-      error: insertResult.error
+// Test connection and table access immediately
+;(async () => {
+  try {
+    console.log('🔍 Testing Supabase connection...')
+    const { data: tableData, error: tableError } = await supabase
+      .from('form_submissions')
+      .select('count')
+      .limit(1)
+
+    if (tableError) {
+      console.error('❌ Connection test failed:', tableError)
+      return
     }
-  })
-}).catch(error => {
-  console.error('Connection test failed:', error)
-})
+
+    console.log('✅ Successfully connected to Supabase!')
+    console.log('📊 Current form submissions count:', tableData)
+
+  } catch (error) {
+    console.error('❌ Connection test failed:', error)
+  }
+})()
 
 // Type for the form submission data
 export interface FormSubmission {
@@ -67,7 +60,7 @@ export interface FormSubmission {
 
 // Helper function to submit form data
 export const submitFormData = async (formData: Omit<FormSubmission, 'id' | 'created_at' | 'status'>) => {
-  console.log('Submitting form data:', formData)
+  console.log('📝 Submitting form data:', formData)
   
   try {
     // First, verify connection
@@ -77,7 +70,7 @@ export const submitFormData = async (formData: Omit<FormSubmission, 'id' | 'crea
       .limit(1)
     
     if (testError) {
-      console.error('Connection test failed before submission:', testError)
+      console.error('❌ Connection test failed before submission:', testError)
       throw new Error('Database connection failed')
     }
 
@@ -91,7 +84,7 @@ export const submitFormData = async (formData: Omit<FormSubmission, 'id' | 'crea
       .select()
 
     if (error) {
-      console.error('Form submission failed:', {
+      console.error('❌ Form submission failed:', {
         error: error.message,
         details: error.details,
         hint: error.hint,
@@ -100,10 +93,10 @@ export const submitFormData = async (formData: Omit<FormSubmission, 'id' | 'crea
       throw error
     }
 
-    console.log('Form submission successful:', data)
+    console.log('✅ Form submission successful:', data)
     return { data, error: null }
   } catch (error: any) {
-    console.error('Form submission error:', {
+    console.error('❌ Form submission error:', {
       message: error?.message,
       details: error?.details,
       hint: error?.hint,
@@ -122,7 +115,7 @@ export const checkConnection = async () => {
       .limit(1)
     
     if (error) {
-      console.error('Connection check failed:', {
+      console.error('❌ Connection check failed:', {
         message: error.message,
         details: error.details,
         hint: error.hint,
@@ -131,10 +124,10 @@ export const checkConnection = async () => {
       throw error
     }
 
-    console.log('Connection check successful:', data)
+    console.log('✅ Connection check successful:', data)
     return { success: true, error: null }
   } catch (error: any) {
-    console.error('Connection check error:', {
+    console.error('❌ Connection check error:', {
       message: error?.message,
       details: error?.details,
       hint: error?.hint,
@@ -144,5 +137,4 @@ export const checkConnection = async () => {
   }
 }
 
-// Export supabase instance for direct access if needed
 export { supabase } 
