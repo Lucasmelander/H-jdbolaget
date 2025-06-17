@@ -1,9 +1,48 @@
 import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { submitFormData } from '../lib/supabase'
 import type { FormSubmission } from '../lib/supabase'
 import { Link } from 'react-router-dom'
+
+// Validation functions
+const validateEmail = (email: string) => {
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+  return emailRegex.test(email)
+}
+
+const validatePhone = (phone: string) => {
+  // Allow numbers, spaces, hyphens, plus sign, and parentheses
+  // Must have at least 8 digits (including country code)
+  const phoneRegex = /^[+]?[(]?[0-9]{1,4}[)]?[-\s.]?[0-9]{1,3}[-\s.]?[0-9]{4,6}$/
+  return phoneRegex.test(phone.replace(/\s+/g, ''))
+}
+
+const validateName = (name: string) => {
+  // Allow letters, spaces, hyphens, and common special characters for names
+  const nameRegex = /^[a-zA-ZåäöÅÄÖ\s-]{2,50}$/
+  return nameRegex.test(name)
+}
+
+const validateMessage = (message: string) => {
+  // Message should be at least 20 characters
+  return message.trim().length >= 20
+}
+
+const getFieldError = (field: string, value: string): string | null => {
+  switch (field) {
+    case 'email':
+      return !validateEmail(value) ? 'Vänligen ange en giltig e-postadress (exempel@domain.com)' : null
+    case 'phone':
+      return !validatePhone(value) ? 'Vänligen ange ett giltigt telefonnummer (minst 8 siffror)' : null
+    case 'name':
+      return !validateName(value) ? 'Vänligen ange ett giltigt namn (2-50 bokstäver)' : null
+    case 'message':
+      return !validateMessage(value) ? 'Meddelandet måste vara minst 20 tecken långt' : null
+    default:
+      return null
+  }
+}
 
 const RequestQuote = () => {
   const { ref, inView } = useInView({
@@ -28,115 +67,25 @@ const RequestQuote = () => {
     message?: string
   }>({})
 
-  // Add field-specific validation functions
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
-    return emailRegex.test(email)
-  }
-
-  const validatePhone = (phone: string) => {
-    // Allow numbers, spaces, hyphens, plus sign, and parentheses
-    // Must have at least 8 digits (including country code)
-    const phoneRegex = /^[+]?[(]?[0-9]{1,4}[)]?[-\s.]?[0-9]{1,3}[-\s.]?[0-9]{4,6}$/
-    return phoneRegex.test(phone.replace(/\s+/g, ''))
-  }
-
-  const validateName = (name: string) => {
-    // Allow letters, spaces, hyphens, and common special characters for names
-    const nameRegex = /^[a-zA-ZåäöÅÄÖ\s-]{2,50}$/
-    return nameRegex.test(name)
-  }
-
-  const validateMessage = (message: string) => {
-    // Message should be at least 20 characters
-    return message.trim().length >= 20
-  }
-
-  const getFieldError = (field: string, value: string): string | null => {
-    switch (field) {
-      case 'email':
-        return !validateEmail(value) ? 'Vänligen ange en giltig e-postadress (exempel@domain.com)' : null
-      case 'phone':
-        return !validatePhone(value) ? 'Vänligen ange ett giltigt telefonnummer (minst 8 siffror)' : null
-      case 'name':
-        return !validateName(value) ? 'Vänligen ange ett giltigt namn (2-50 bokstäver)' : null
-      case 'message':
-        return !validateMessage(value) ? 'Meddelandet måste vara minst 20 tecken långt' : null
-      default:
-        return null
-    }
-  }
-
-  const validateStep = (step: number) => {
-    console.log(`🔍 Validating step ${step}...`)
-    
-    switch (step) {
+  // Memoize the validation result
+  const isStepValid = useMemo(() => {
+    switch (currentStep) {
       case 1: {
         const nameError = getFieldError('name', formData.name)
         const emailError = getFieldError('email', formData.email)
         const phoneError = getFieldError('phone', formData.phone)
-
-        if (nameError || emailError || phoneError) {
-          setSubmitStatus({
-            success: false,
-            message: [nameError, emailError, phoneError].filter(Boolean).join('. ')
-          })
-          return false
-        }
-        return true
+        return !(nameError || emailError || phoneError)
       }
       case 2:
-        if (!formData.service_type?.trim()) {
-          setSubmitStatus({
-            success: false,
-            message: 'Vänligen välj en tjänst'
-          })
-          return false
-        }
-        return true
+        return !!formData.service_type?.trim()
       case 3: {
         const messageError = getFieldError('message', formData.message)
-        if (messageError) {
-          setSubmitStatus({
-            success: false,
-            message: messageError
-          })
-          return false
-        }
-        return true
+        return !messageError
       }
       default:
         return false
     }
-  }
-
-  const validateAllFields = () => {
-    console.log('🔍 Validating all fields...')
-    
-    const errors: string[] = []
-    
-    // Check all required fields
-    const nameError = getFieldError('name', formData.name)
-    const emailError = getFieldError('email', formData.email)
-    const phoneError = getFieldError('phone', formData.phone)
-    const messageError = getFieldError('message', formData.message)
-
-    if (nameError) errors.push(nameError)
-    if (emailError) errors.push(emailError)
-    if (phoneError) errors.push(phoneError)
-    if (!formData.service_type) errors.push('Vänligen välj en tjänst')
-    if (messageError) errors.push(messageError)
-
-    if (errors.length > 0) {
-      setSubmitStatus({
-        success: false,
-        message: errors.join('. ')
-      })
-      return false
-    }
-
-    return true
-  }
+  }, [currentStep, formData])
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -149,22 +98,19 @@ const RequestQuote = () => {
       [name]: value
     }))
 
-    // Clear error message when user starts typing
-    setSubmitStatus({})
-
-    // Show real-time validation feedback
-    const error = getFieldError(name, value)
-    if (error) {
+    // Only show validation errors if there was a previous error
+    if (submitStatus.message) {
+      const error = getFieldError(name, value)
       setSubmitStatus({
         success: false,
-        message: error
+        message: error || ''
       })
     }
   }
 
   const handleNext = () => {
     console.log(`🔄 Attempting to move to next step from step ${currentStep}`)
-    if (validateStep(currentStep)) {
+    if (isStepValid) {
       console.log(`✅ Step ${currentStep} validated successfully`)
       setCurrentStep(prev => prev + 1)
     } else {
@@ -183,7 +129,7 @@ const RequestQuote = () => {
     console.log('Current step:', currentStep)
     console.log('Form data:', formData)
 
-    if (!validateAllFields()) {
+    if (!isStepValid) {
       console.log('❌ Form validation failed')
       return
     }
@@ -473,9 +419,9 @@ const RequestQuote = () => {
                       whileTap={{ scale: 0.98 }}
                       type="button"
                       onClick={handleNext}
-                      disabled={!validateStep(currentStep)}
+                      disabled={!isStepValid}
                       className={`px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-primary hover:bg-primary-dark transition-colors duration-200 ${
-                        !validateStep(currentStep) ? 'opacity-50 cursor-not-allowed' : ''
+                        !isStepValid ? 'opacity-50 cursor-not-allowed' : ''
                       }`}
                     >
                       Nästa
@@ -485,9 +431,9 @@ const RequestQuote = () => {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       type="submit"
-                      disabled={isSubmitting || !validateStep(3)}
+                      disabled={isSubmitting || !isStepValid}
                       className={`inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-primary hover:bg-primary-dark transition-colors duration-200 ${
-                        isSubmitting || !validateStep(3) ? 'opacity-75 cursor-not-allowed' : ''
+                        isSubmitting || !isStepValid ? 'opacity-75 cursor-not-allowed' : ''
                       }`}
                     >
                       {isSubmitting ? (
